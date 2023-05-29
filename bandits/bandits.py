@@ -1,6 +1,6 @@
 """An implementation of the multi-armed bandits problem."""
 
-from numpy.random import rand, normal, randint, binomial, uniform
+from numpy.random import rand, normal, randint, binomial, uniform, beta
 from numpy import log, argmax
 
 distributions = ["Bernoulli", "Uniform", "Normal"]
@@ -133,11 +133,19 @@ class Arm:
         self.parameters = parameters
         self.mean_reward = 0
 
+# Bernoulli sampling dist implies beta(a, b) prior and beta(y + a, n - y + b)
+# posterior, where y = n * x_bar
+
+# Normal sampling dist implies normal(mu, sigma) prior and normal(M, V**2)
+# posterior
+
         if distribution == "Bernoulli":
             self.variance = parameters[0] * (1 - parameters[0])
+            self._post_params = [1, 1]
         elif distribution == "Normal":
             self.mean = parameters[0]
             self.variance = parameters[1]
+            self._post_params = [0, 1]
         elif distribution == "Uniform":
             self.min = parameters[0]
             self.max = parameters[1]
