@@ -1,7 +1,9 @@
 """An implementation of the multi-armed bandits problem."""
 
-from numpy.random import rand, normal, randint, binomial, uniform, beta
-from numpy import log, argmax
+from numpy.random import rand, normal, randint, binomial, uniform, beta  # noqa F401
+from numpy import log, argmax, arange, ones
+from itertools import accumulate
+import matplotlib.pyplot as plt
 
 distributions = ["Bernoulli", "Uniform", "Normal"]
 
@@ -353,3 +355,21 @@ class Game(Bandits):
             self._pull_ucb(delta)
 
         return self.history
+
+    def bernoulli_maxscore_evaluation(self, algorithm, rounds):
+        """Plot a graph of max score vs algorithm score, for Bernoulli arms."""
+        if algorithm == "Round Robin":
+            history = self.round_robin(rounds)
+        elif algorithm == "Follow the Leader":
+            history = self.follow_the_leader(rounds)
+        elif algorithm == "Epsilon Greedy":
+            history = self.epsilon_greedy(rounds)
+        scores = [t[1] for t in history]
+        cum_scores = list(accumulate(scores))
+        round_array = arange(0, rounds, 1)
+        maxscores = arange(1, rounds + 1, 1)
+        plt.plot(round_array, cum_scores, 'b.')
+        plt.plot(round_array, maxscores, 'r.')
+        plt.xlabel('Round Number')
+        plt.ylabel('Score')
+        plt.legend()
