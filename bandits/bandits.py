@@ -1,14 +1,17 @@
 """An implementation of the multi-armed bandits problem."""
 
 from numpy.random import rand, normal, randint, binomial, uniform, beta
-from numpy import log, argmax
+from numpy import log, argmax, arange
+from itertools import accumulate
+import matplotlib.pyplot as plt
 
 
 class Arm:
     """Create an arm object in a multi-armed bandits problem."""
 
     def __init__(self, distribution, *parameters):
-        """
+        """.
+
         Parameters
         ----------
         distribution : string
@@ -54,6 +57,7 @@ class Arm:
         self._total_reward = 0
 
     def __repr__(self):
+        """Canonical String Representation."""
         return f"{self._distribution}_{type(self).__name__}{self.parameters}"
 
     def _play(self):
@@ -115,6 +119,7 @@ class Bandits:
         self.cumulative_regret = []
 
     def __repr__(self):
+        """Canonical String Representation."""
         return f"{self._number_of_arms}-Arm {type(self).__name__}"
 
     def _cumulative_regret(self):
@@ -172,7 +177,9 @@ class Bandits:
 
     # Used in the upper confidence bound algorithm
     def _pull_ucb(self, delta):
-        """Pull the arm with the greatest UCB, and update the mean reward, LCB
+        """.
+
+        Pull the arm with the greatest UCB, and update the mean reward, LCB
         and UCB.
         """
         arm, arm_index = self._greatest_ucb()
@@ -365,6 +372,24 @@ class Game(Bandits):
 
         return self.cumulative_regret
 
+    def bernoulli_maxscore_evaluation(self, algorithm, rounds):
+        """Plot a graph of max score vs algorithm score, for Bernoulli arms."""
+        if algorithm == "Round Robin":
+            history = self.round_robin(rounds)
+        elif algorithm == "Follow the Leader":
+            history = self.follow_the_leader(rounds)
+        elif algorithm == "Epsilon Greedy":
+            history = self.epsilon_greedy(rounds)
+        scores = [t[1] for t in history]
+        cum_scores = list(accumulate(scores))
+        round_array = arange(0, rounds, 1)
+        maxscores = arange(1, rounds + 1, 1)
+        plt.plot(round_array, cum_scores, 'b.')
+        plt.plot(round_array, maxscores, 'r.')
+        plt.xlabel('Round Number')
+        plt.ylabel('Score')
+        plt.legend()
+
 
 distributions = ["Bernoulli", "Uniform", "Normal"]
 
@@ -509,39 +534,3 @@ def uniform_arms(number_of_arms, uniform_min=0, uniform_max=10):
         arms.append(Arm("Uniform", parameters[0], parameters[1]))
 
     return arms
-
-    def bernoulli_maxscore_evaluation(self, algorithm, rounds):
-        """Plot a graph of max score vs algorithm score, for Bernoulli arms."""
-        if algorithm == "Round Robin":
-            history = self.round_robin(rounds)
-        elif algorithm == "Follow the Leader":
-            history = self.follow_the_leader(rounds)
-        elif algorithm == "Epsilon Greedy":
-            history = self.epsilon_greedy(rounds)
-        scores = [t[1] for t in history]
-        cum_scores = list(accumulate(scores))
-        round_array = arange(0, rounds, 1)
-        maxscores = arange(1, rounds + 1, 1)
-        plt.plot(round_array, cum_scores, 'b.')
-        plt.plot(round_array, maxscores, 'r.')
-        plt.xlabel('Round Number')
-        plt.ylabel('Score')
-        plt.legend()
-
-    def bernoulli_maxscore_evaluation(self, algorithm, rounds):
-        """Plot a graph of max score vs algorithm score, for Bernoulli arms."""
-        if algorithm == "Round Robin":
-            history = self.round_robin(rounds)
-        elif algorithm == "Follow the Leader":
-            history = self.follow_the_leader(rounds)
-        elif algorithm == "Epsilon Greedy":
-            history = self.epsilon_greedy(rounds)
-        scores = [t[1] for t in history]
-        cum_scores = list(accumulate(scores))
-        round_array = arange(0, rounds, 1)
-        maxscores = arange(1, rounds + 1, 1)
-        plt.plot(round_array, cum_scores, 'b.')
-        plt.plot(round_array, maxscores, 'r.')
-        plt.xlabel('Round Number')
-        plt.ylabel('Score')
-        plt.legend()
