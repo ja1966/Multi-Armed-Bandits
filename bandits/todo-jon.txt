@@ -1,0 +1,2 @@
+Regret graphs for diff arms and algorithms.
+Code a 'random choice' function, and add this to the graphs.
