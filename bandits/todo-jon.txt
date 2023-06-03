@@ -1,2 +1,30 @@
 Regret graphs for diff arms and algorithms.
 Code a 'random choice' function, and add this to the graphs.
+
+def rr_regret_graph(algorithm, history, rounds, graph=None):  # TOBEUPDATED W CONFIDENCE INTERVALS
+        """Plot a graph of cumulative regret versus Rounds Played, for Round Robin."""
+        round_array = arange(0, rounds, 1)
+        if algorithm == "Round Robin":
+            #  history = round_robin(rounds)
+            regrets_rr = [t[1] for t in history]
+            cum_regrets_rr = list(accumulate(regrets_rr))
+            graph.plot(round_array, cum_regrets_rr, 'b.',
+                       label='Round Robin')
+        elif algorithm == "Follow the Leader":
+            history = follow_the_leader(rounds)
+            regrets_ftl = [t[1] for t in history]
+            cum_regrets_ftl = list(accumulate(regrets_ftl))
+            graph.plot(round_array, cum_regrets_ftl, 'r.',
+                       label='Follow the Leader')
+        elif algorithm == "Epsilon Greedy":
+            history = self.epsilon_greedy(rounds)
+            regrets_eg = [t[1] for t in history]
+            cum_regrets_eg = list(accumulate(regrets_eg))
+            graph.plot(round_array, cum_regrets_eg, 'g.',
+                       label='Epsilon Greedy')
+        elif algorithm == "Thompson Sampling":
+            history = self.thompson_sampling(rounds)
+            regrets_ts = [t[1] for t in history]
+            cum_regrets_ts = list(accumulate(regrets_ts))
+            graph.plot(round_array, cum_regrets_ts, 'o.',
+                       label='Thompson Sampling')
