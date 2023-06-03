@@ -1,7 +1,7 @@
 """An implementation of the multi-armed bandits problem."""
 
 from numpy.random import rand, normal, randint, binomial, uniform, beta
-from numpy import log, argmax, arange
+from numpy import log, argmax, arange, array
 from itertools import accumulate
 import matplotlib.pyplot as plt
 
@@ -373,42 +373,57 @@ class Game(Bandits):
         return self.cumulative_regret
 
     @staticmethod  # Note : Decorator. Do not call this when plotting
-    def regret_graph(self, algorithm, rounds, graph=None):  # TOBEUPDATED W CONFIDENCE INTERVALS
-        """Plot a graph of cumulative regret versus Rounds Played."""
-        round_array = arange(0, rounds, 1)
-        if algorithm == "Round Robin":
-            history = self.round_robin(rounds)
-            regrets_rr = [t[1] for t in history]
-            cum_regrets_rr = list(accumulate(regrets_rr))
-            graph.plot(round_array, cum_regrets_rr, 'b.',
-                       label='Round Robin')
-        elif algorithm == "Follow the Leader":
-            history = self.follow_the_leader(rounds)
-            regrets_ftl = [t[1] for t in history]
-            cum_regrets_ftl = list(accumulate(regrets_ftl))
-            graph.plot(round_array, cum_regrets_ftl, 'r.',
-                       label='Follow the Leader')
-        elif algorithm == "Epsilon Greedy":
-            history = self.epsilon_greedy(rounds)
-            regrets_eg = [t[1] for t in history]
-            cum_regrets_eg = list(accumulate(regrets_eg))
-            graph.plot(round_array, cum_regrets_eg, 'g.',
-                       label='Epsilon Greedy')
-        elif algorithm == "Thompson Sampling":
-            history = self.thompson_sampling(rounds)
-            regrets_ts = [t[1] for t in history]
-            cum_regrets_ts = list(accumulate(regrets_ts))
-            graph.plot(round_array, cum_regrets_ts, 'o.',
-                       label='Thompson Sampling')
+    def rr_regret_graph(history, rounds):  # TOBEUPDATED W CONFIDENCE INTERVALS
+        """Plot a graph of cumulative regret vs rounds, for Round Robin."""
+        round_list = list(range(1, rounds + 1))
+        cum_regrets_rr = history[:rounds]
+        plt.plot(round_list, cum_regrets_rr, 'b',
+                 label='Round Robin')
+
+    @staticmethod
+    def ftl_regret_graph(history, rounds):
+        """Plot graph of cumulative regret vs round, for Follow the Leader."""
+        round_list = list(range(1, rounds + 1))
+        cum_regrets_ftl = history[:rounds]
+        plt.plot(round_list, cum_regrets_ftl, 'r',
+                 label='Follow the Leader')
+
+    @staticmethod
+    def eg_regret_graph(history, rounds):
+        """Plot cumulative regret vs rounds, for Epsilon greedy."""
+        round_list = list(range(1, rounds + 1))
+        cum_regrets_eg = history[:rounds]
+        plt.plot(round_list, cum_regrets_eg, 'g',
+                 label='Epsilon Greedy')
+
+    @staticmethod
+    def ts_regret_graph(history, rounds):
+        """Plot cumulative regret vs rounds, for Thompson sampling."""
+        round_list = list(range(1, rounds + 1))
+        cum_regrets_ts = history[:rounds]
+        plt.plot(round_list, cum_regrets_ts, color='orange',
+                 label='Thompson Sampling')
 
     def plot_cumregret_graph(self, algorithms, rounds):  # call this
         """Plot all regret graphs for each algorithm on the same figure."""
-        fig, axs = plt.subplots(figsize=(14, 7))
+        plt.figure(figsize=(14, 7))
         for algorithm in algorithms:
-            self.regret_graph(algorithm, rounds, graph=fig)
-        axs.set_xlabel('Number of Pulls')
-        axs.set_ylabel('Cumulative Regret')
-        axs.legend()
+            if algorithm == "Round Robin":
+                self.rr_regret_graph(self.round_robin(rounds), rounds)
+            elif algorithm == "Follow the Leader":
+                self.ftl_regret_graph(self.follow_the_leader(rounds),
+                                      rounds)
+            elif algorithm == "Epsilon Greedy":
+                self.eg_regret_graph(self.epsilon_greedy(rounds),
+                                     rounds)
+            elif algorithm == "Thompson Sampling":
+                self.ts_regret_graph(self.thompson_sampling(rounds),
+                                     rounds)
+            else:
+                raise TypeError("Must enter a valid algorithm name.")
+        plt.xlabel('Number of Pulls')
+        plt.ylabel('Cumulative Regret')
+        plt.legend()
         plt.show()
 
 
