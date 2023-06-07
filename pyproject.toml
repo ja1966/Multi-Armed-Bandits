@@ -4,5 +4,5 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bandits"
-version = "2.0"
+version = "3.0"
 dependencies = ["numpy"]
