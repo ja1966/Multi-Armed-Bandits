@@ -28,10 +28,8 @@ class Arm:
                Mean of the arm's distribution.
         variance : float
                    Variance of the arm's distribution.
-        lcb : float
-              Current lower confidence bound of the arm.
         ucb : float
-              Current Upper Confidence Bound of the arm.
+              Current upper confidence bound of the arm.
         post_params : list
                       Posterior parameters for Thompson Sampling.
         """
@@ -63,7 +61,6 @@ class Arm:
         self._total_reward = 0
 
     def __repr__(self):
-        """Canonical String Representation."""
         if len(self.parameters) == 1:
             repr = (f"{self._distribution}_{type(self).__name__}"
                     f"({self.parameters[0]})")
@@ -97,12 +94,13 @@ class Arm:
 
 
 class Bandits:
-    """An implementation of the multi-armed bandit problem.
+    """
+    Implement the multi-armed bandit problem.
 
     Methods
     -------
-    reset :  Reset the game.
-    regret : Compute the regret of an algorithm.
+    reset :  Reset a game.
+    regret : Compute the regret of an round in a multi-armed bandit game.
     """
 
     def __init__(self, arms):
@@ -128,8 +126,21 @@ class Bandits:
         self.optimal_mean = max([arm.mean for arm in arms])
 
     def __repr__(self):
-        """Canonical String Representation."""
         return f"{self._number_of_arms}-Arm {type(self).__name__}"
+
+    def regret(self):
+        """Compute the regret of a round."""
+        arm_index = self.history[-1][0]
+        mean_current_arm = self.arms[arm_index].mean
+        return self.optimal_mean - mean_current_arm
+
+    def _cumulative_regret(self):
+        """Update the cumulative regret for an algorithm."""
+        if self.cumulative_regret:
+            cum_regret = self.cumulative_regret[-1] + self.regret()
+            self.cumulative_regret.append(cum_regret)
+        else:
+            self.cumulative_regret.append(self.regret())
 
     # Used in the Round Robin, Follow the Leader, Epsilon-Greedy, and Upper
     # Confidence Bound algorithms
@@ -143,13 +154,6 @@ class Bandits:
         arm.mean_reward = (((arm.times_played - 1) * arm.mean_reward +
                             reward) / arm.times_played)
         self._cumulative_regret()
-
-    # Used in the Epsilon-Greedy algorithm
-    def _pull_uniform_explore(self):
-        """Pull an arm uniformly at random."""
-        random_int = randint(0, self._number_of_arms)
-        arm = self.arms[random_int]
-        self._round(arm, random_int)
 
     # Used in the Round Robin, Follow the Leader, Epsilon-Greedy, and Upper
     # Confidence Bound algorithms
@@ -172,6 +176,13 @@ class Bandits:
         arm, arm_index = self._max_mean_reward()
         self._round(arm, arm_index)
 
+    # Used in the Epsilon-Greedy algorithm
+    def _pull_uniform_explore(self):
+        """Pull an arm uniformly at random."""
+        random_int = randint(0, self._number_of_arms)
+        arm = self.arms[random_int]
+        self._round(arm, random_int)
+
     # Used in the Upper Confidence Bound algorithm
     def _greatest_ucb(self):
         """Find the arm with the greatest UCB, and its index."""
@@ -179,7 +190,6 @@ class Bandits:
         for arm in self.arms:
             ucb.append(arm.ucb)
         ucb_index = argmax(ucb)
-
         return self.arms[ucb_index], ucb_index
 
     # Used in the Upper Confidence Bound algorithm
@@ -191,6 +201,7 @@ class Bandits:
         self._round(arm, arm_index)
         arm._update_ucb(delta)
 
+    # Used in the Thompson Sampling algorithm
     def _thompson_sample(self):
         """Sample from the posterior distribution of each arm."""
         for arm in self.arms:
@@ -201,14 +212,21 @@ class Bandits:
                 arm.mean_reward = normal(arm.post_params[0],
                                          arm.post_params[1])
             elif arm._distribution == "Uniform":
-                # Based on Pareto Type I
+                # Using Pareto Type I
                 arm.mean_reward = (arm.post_params[1] *
                                    (pareto(arm.post_params[0]) + 1))
 
+    # Used in the Thompson Sampling algorithm
     def _round_thompson(self, arm, arm_index):
         """
         Play current arm; Update history, posterior of current arm, and
         cumulative regret.
+
+        Notes
+        -----
+        Bernoulli distributed arms have a Uniform prior;
+        Normally distributed arms have a Gaussian prior;
+        Uniformly distributed arms have a Pareto Type I prior.
         """
         reward = arm._play()
         self.history.append((arm_index, reward))
@@ -222,7 +240,6 @@ class Bandits:
         elif arm._distribution == "Uniform":
             arm.post_params[0] += 1
             arm.post_params[1] = max(reward, arm.post_params[1])
-
         self._cumulative_regret()
 
     def reset(self):
@@ -235,21 +252,6 @@ class Bandits:
             arm.lcb = 0
             arm.ucb = 0
             arm._total_reward = 0
-
-    # Uses the first definition of regret in the notes
-    def regret(self):
-        """Compute the regret of a round."""
-        arm_index = self.history[-1][0]
-        mean_current_arm = self.arms[arm_index].mean
-        return self.optimal_mean - mean_current_arm
-
-    def _cumulative_regret(self):
-        """Update the cumulative regret for an algorithm."""
-        if self.cumulative_regret:
-            cum_regret = self.cumulative_regret[-1] + self.regret()
-            self.cumulative_regret.append(cum_regret)
-        else:
-            self.cumulative_regret.append(self.regret())
 
 
 class Game(Bandits):
@@ -278,7 +280,8 @@ class Game(Bandits):
     """
 
     def round_robin(self, cycles):
-        """Apply the Round Robin algorithm.
+        """
+        Apply the Round Robin algorithm.
 
         Parameters
         ----------
@@ -297,7 +300,8 @@ class Game(Bandits):
         return self.cumulative_regret
 
     def follow_the_leader(self, rounds):
-        """Apply the Follow the Leader algorithm.
+        """
+        Apply the Follow the Leader algorithm.
 
         Parameters
         ----------
@@ -312,14 +316,14 @@ class Game(Bandits):
         self._pull_cycle()
         for round in range(rounds - self._number_of_arms):
             self._pull_exploit()
-
         return self.cumulative_regret
 
     def epsilon_greedy(self, rounds):
-        """Apply the epsilon-greedy algorithm.
+        """
+        Apply the epsilon-greedy algorithm.
 
         Epsilon depends on the rounds in a game, with
-        epsilon = the number of arms / the current round in a game.
+        epsilon = number of arms / the current round of a game.
 
         Parameters
         ----------
@@ -338,14 +342,14 @@ class Game(Bandits):
                 self._pull_uniform_explore()
             else:
                 self._pull_exploit()
-
         return self.cumulative_regret
 
     def upper_confidence_bound(self, rounds, delta):
-        """Apply the Upper Confidence Bound algorithm.
+        """
+        Apply the Upper Confidence Bound algorithm.
 
-        The delta typically used is 1 / (the number of arms *
-        (the number of rounds) ** 2).
+        The delta typically used is 1 / (number of arms *
+        (number of rounds) ** 2).
 
         Parameters
         ----------
@@ -357,20 +361,19 @@ class Game(Bandits):
         Returns
         -------
         cumulative_regret : list
-                           Cumulative regret of a game.
+                            Cumulative regret of a game.
         """
         self._pull_cycle()
         for round in range(self._number_of_arms):
-            # Update UCB after pulling every arm once
+            # Update UCB after pulling each arm once
             self.arms[round]._update_ucb(delta)
-
         for round in range(rounds - self._number_of_arms):
             self._pull_ucb(delta)
-
         return self.cumulative_regret
 
     def thompson_sampling(self, rounds):
-        """Apply the Thompson Sampling algorithm.
+        """
+        Apply the Thompson Sampling algorithm.
 
         Parameters
         ----------
@@ -388,7 +391,6 @@ class Game(Bandits):
             max_arm, arm_index = self._max_mean_reward()
             self._round_thompson(max_arm, arm_index)
             round += 1
-
         return self.cumulative_regret
 
     @staticmethod  # Note : Decorator. Do not call this when plotting
@@ -450,12 +452,13 @@ distributions = ["Bernoulli", "Uniform", "Normal"]
 
 
 def bernoulli_arms(number_of_arms, uniform_means=0):
-    """Create a list of Bernoulli distributed arms.
+    """
+    Create a list of Bernoulli distributed arms.
 
     Parameters
     ----------
     number_of_arms : int
-                     Number of arms used in the multi-bandit problem.
+                     Number of arms used in the multi-armed bandit problem.
     uniform_means: int, default=0
                    If set to 1, the means of the arms are uniformly
                    distributed between 0 and 1.
@@ -466,7 +469,6 @@ def bernoulli_arms(number_of_arms, uniform_means=0):
         Contains the randomly generated Bernoulli arms.
     """
     arms = []
-
     if uniform_means:
         means = linspace(0, 1, number_of_arms)
         for parameter in means:
@@ -475,19 +477,19 @@ def bernoulli_arms(number_of_arms, uniform_means=0):
         for arm in range(number_of_arms):
             parameter = rand()
             arms.append(Arm("Bernoulli", parameter))
-
     return arms
 
 
 def normal_arms(number_of_arms, uniform_means=0):
-    """Create a list of Normally distributed arms.
+    """
+    Create a list of normally distributed arms.
 
     The unknown mean value lies between 0 and 1; the variance is equal to 1.
 
     Parameters
     ----------
     number_of_arms : int
-                     Number of arms used in the multi-bandit problem.
+                     Number of arms used in the multi-armed bandit problem.
     uniform_means: int, default=0
                    If set to 1, the means of the arms are uniformly
                    distributed between 0 and 1.
@@ -495,7 +497,7 @@ def normal_arms(number_of_arms, uniform_means=0):
     Returns
     -------
     list
-        Contains the randomly generated Normal arms.
+        Contains the randomly generated normal arms.
     """
     arms = []
     variance = 1
@@ -507,20 +509,20 @@ def normal_arms(number_of_arms, uniform_means=0):
         for arm in range(number_of_arms):
             mean = rand()
             arms.append(Arm("Normal", mean, variance))
-
     return arms
 
 
 def uniform_arms(number_of_arms, uniform_means=0):
-    """Create a list of Uniformly distributed arms.
+    """
+    Create a list of Uniformly distributed arms.
 
-    The minimum reward value is set to be 0; the maximum reward value lies
-    between 0 and 2 such that the mean value lies between 0 and 1.
+    The minimum value is set to be 0; the maximum value lies
+    between 0 and 2 such that the mean lies between 0 and 1.
 
     Parameters
     ----------
     number_of_arms : int
-                     Number of arms used in the multi-bandit problem.
+                     Number of arms used in the multi-armed bandit problem.
     uniform_means: int, default=0
                    If set to 1, the means of the arms are uniformly
                    distributed between 0 and 1.
@@ -540,5 +542,4 @@ def uniform_arms(number_of_arms, uniform_means=0):
         for arm in range(number_of_arms):
             max = uniform(0, 2)
             arms.append(Arm("Uniform", min_value, max))
-
     return arms
