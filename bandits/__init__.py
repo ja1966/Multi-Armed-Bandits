@@ -1,6 +1,6 @@
 """
 An implementation of the multi-armed bandit problem including the
-Epsilon-Greedy and Upper Confidence Bound algorithms.
+Epsilon-Greedy and UCB1 algorithms.
 
 Classes
 -------
